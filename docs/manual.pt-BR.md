@@ -21,8 +21,6 @@ Uma imagem de colágeno pode conter fibras isoladas, feixes entrelaçados e estr
 
 O plugin é **baseado no FIRE (Fiber Extraction)**, particularmente nos princípios de seleção de sementes no interior da rede e extensão direcional das trajetórias descritos por Stein et al. [1]. Trata-se de uma implementação Python independente para **2D**, com **realce Sato** [2] em lugar do pré-processamento por curvelets. Não é o FIRE/CT-FIRE original nem uma implementação com equivalência numérica demonstrada. Também não reconstrói uma rede tridimensional a partir de uma projeção 2D.
 
-A interface do CellProfiler oferece somente Sato + FIRE-inspired. Não requer MATLAB ou executável externo de rastreamento. O código utiliza bibliotecas científicas Python disponíveis no ambiente do CellProfiler. Consulte a [instalação](../README.pt-BR.md#instalação) e os [limites da validação](../VALIDATION.md).
-
 ## Início rápido
 
 1. Escolha uma imagem em tons de cinza com fibras mais claras que o fundo. Se um módulo anterior alterou as intensidades, o plugin medirá essa imagem fornecida, e não o arquivo original da aquisição.
@@ -135,7 +133,7 @@ O painel de medidas utiliza uma tabela com bordas e colunas **Measurement / Mean
 
 ![Resultado representativo do IdentifyFibers](assets/representative.png)
 
-Resultado representativo selecionado para a primeira versão pública. A captura do CellProfiler fornecida pelo usuário mostra 79 objetos, larguras esperadas de 1–4 px, limiarização por Otsu, comprimento mínimo de 15 px e deflexão máxima de 35°. São ajustes do exemplo, não os padrões do plugin nem uma contagem biológica validada. A imagem de origem e o pipeline completo desse exemplo não acompanham o pacote; a captura não constitui um benchmark reproduzível. As evidências de regressão estão documentadas separadamente em [VALIDATION.md](../VALIDATION.md).
+Resultado representativo selecionado para a primeira versão pública. A captura do CellProfiler fornecida pelo usuário mostra 79 objetos, larguras esperadas de 1–4 px, limiarização por Otsu, comprimento mínimo de 15 px e deflexão máxima de 35°. São ajustes do exemplo, não os padrões do plugin nem uma contagem biológica validada. A imagem de origem e o pipeline completo desse exemplo não acompanham o pacote; a captura não constitui um benchmark reproduzível. 
 
 ## Medidas e exportação
 
@@ -176,7 +174,7 @@ A comparação anterior de sobreposições parciais utilizava uma distância fix
 
 Uma mudança sustentada de lado é tratada como evidência de cruzamento, em vez de duplicata. Sem contraste de intensidade utilizável, a comparação ampliada é desativada. Não há novos controles; os pipelines existentes permanecem compatíveis. A máscara de segmentação não é erodida e não se insere uma faixa de exclusão. A correção atua sobre a identidade das trajetórias antes do filtro habitual de comprimento e da divisão de pixels. Ela não estabelece quantas fibras biológicas existem em um feixe não resolvido ou saturado.
 
-Consulte os [testes controlados e a comparação antes/depois na imagem de microscopia](../VALIDATION.md). Uma contagem menor, isoladamente, não comprova melhora: a revisão também pode preservar um cruzamento que a regra anterior cortava indevidamente.
+Uma contagem menor, isoladamente, não comprova melhora: a revisão também pode preservar um cruzamento que a regra anterior cortava indevidamente.
 
 ## Reprodutibilidade e referências
 
@@ -187,4 +185,4 @@ Registre tamanho do pixel, pré-processamento, nome da imagem de entrada, regiõ
 1. **Stein AM, Vader DA, Jawerth LM, Weitz DA, Sander LM.** An algorithm for extracting the network geometry of three-dimensional collagen gels. *Journal of Microscopy*. 2008;232(3):463–475. [doi:10.1111/j.1365-2818.2008.02141.x](https://doi.org/10.1111/j.1365-2818.2008.02141.x). Referência original do FIRE; fundamenta a inspiração metodológica, não a validação deste plugin.
 2. **Sato Y, Nakajima S, Shiraga N, Atsumi H, Yoshida S, Koller T, Gerig G, Kikinis R.** Three-dimensional multi-scale line filter for segmentation and visualization of curvilinear structures in medical images. *Medical Image Analysis*. 1998;2(2):143–168. [doi:10.1016/S1361-8415(98)80009-1](https://doi.org/10.1016/S1361-8415(98)80009-1).
 
-Copyright e licença originais do FIRE estão preservados em [LICENSE_FIRE.txt](../LICENSE_FIRE.txt); consulte [NOTICE.txt](../NOTICE.txt). O software não é endossado pelos autores originais do FIRE. Os limites conhecidos da validação e as instruções de teste estão em [VALIDATION.md](../VALIDATION.md).
+Copyright e licença originais do FIRE estão preservados em [LICENSE_FIRE.txt](../LICENSE_FIRE.txt); consulte [NOTICE.txt](../NOTICE.txt). O software não é endossado pelos autores originais do FIRE.
