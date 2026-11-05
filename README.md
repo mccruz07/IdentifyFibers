@@ -4,7 +4,7 @@
 
 ![IdentifyFibers representative result](docs/assets/representative.png)
 
-*Representative CellProfiler output: 79 fiber objects. Example settings: widths 1–4 px, Otsu, minimum length 15 px, maximum deflection 35°. Supplied screenshot; these settings are not the plugin defaults.*
+*Representative CellProfiler output: 57 fiber objects. Example settings: widths 1–8 px, Otsu, minimum length 15 px, maximum deflection 35°. Supplied screenshot; these settings are the plugin defaults.*
 
 A Python plugin for identifying and measuring bright fibers in **2D grayscale images** in CellProfiler. We use a Sato enhancement highlights elongated structures; a FIRE-inspired tracer to extracts centerlines, and a direction- and intensity-guided partition to assigns region pixels to individual objects.
 
