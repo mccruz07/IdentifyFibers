@@ -4,13 +4,13 @@
 
 ![Resultado representativo do IdentifyFibers](docs/assets/representative.png)
 
-*Resultado representativo no CellProfiler: 79 objetos de fibra. Ajustes do exemplo: larguras de 1–4 px, Otsu, comprimento mínimo de 15 px e deflexão máxima de 35°. Captura fornecida pelo usuário; esses valores não são os padrões do plugin.*
+*Resultado representativo no CellProfiler: 57 objetos de fibra. Ajustes do exemplo: larguras de 1–8 px, Otsu, comprimento mínimo de 15 px e deflexão máxima de 35°. Captura fornecida pelo usuário; esses valores são os padrões do plugin.*
 
-Plugin Python para identificar e medir fibras claras em **imagens 2D em tons de cinza** no CellProfiler. O realce Sato destaca estruturas alongadas; um rastreador inspirado no FIRE extrai as linhas centrais, e uma divisão orientada pela direção e pela intensidade atribui os pixels das regiões aos objetos.
+Plugin do CellProfiler para identificar e medir fibras claras em **imagens 2D em tons de cinza**. O realce Sato destaca estruturas alongadas; um rastreador inspirado no FIRE extrai as linhas centrais, e uma divisão orientada pela direção e pela intensidade atribui os pixels das regiões aos objetos.
 
-O plugin oferece um único método: **Sato + FIRE-inspired**. Utiliza NumPy, SciPy, scikit-image e Matplotlib do ambiente do CellProfiler. Não requer MATLAB, instalação do CT-FIRE, pacote de curvelets ou download de modelos. É uma implementação independente, sem equivalência numérica estabelecida com FIRE ou CT-FIRE.
+O plugin oferece o método: **Sato + FIRE-inspired**. Utiliza NumPy, SciPy, scikit-image e Matplotlib do ambiente do CellProfiler. Não requer MATLAB, instalação do CT-FIRE, pacote de curvelets ou download de modelos. É uma implementação independente, sem equivalência numérica estabelecida com FIRE ou CT-FIRE.
 
-**Primeira versão pública: v1.0.0.** Inclui correção de trajetórias duplicadas com apoio da intensidade, help em inglês e manuais bilíngues. Consulte as [notas da versão](CHANGELOG.md) e a [validação](VALIDATION.md).
+**Primeira versão pública: v1.0.0.** 
 
 ## Instalação
 
@@ -30,12 +30,9 @@ Os manuais apresentam instalação, efeitos biológicos esperados ao aumentar ou
 - [User manual — English](docs/manual.en.md)
 - [Validação e notas da versão](VALIDATION.md)
 
-- [Preparação da publicação no GitHub](docs/PUBLISHING.md)
 
 ## Base científica
 
 Baseado nos princípios do FIRE descritos por **Stein AM, Vader DA, Jawerth LM, Weitz DA, Sander LM.** An algorithm for extracting the network geometry of three-dimensional collagen gels. *Journal of Microscopy*. 2008;232(3):463–475. [doi:10.1111/j.1365-2818.2008.02141.x](https://doi.org/10.1111/j.1365-2818.2008.02141.x).
-
-O FIRE original abordava redes tridimensionais; este plugin implementa um fluxo 2D com Sato. Cite o artigo como inspiração metodológica, identifique o plugin e sua versão em Métodos e descreva os parâmetros utilizados. Não apresente estes resultados como saídas do CT-FIRE original.
 
 Consulte [NOTICE.txt](NOTICE.txt), [licença do FIRE](LICENSE_FIRE.txt) e [licença do pacote](LICENSE). A atribuição não representa endosso pelos autores originais.
