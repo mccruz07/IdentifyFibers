@@ -2,11 +2,15 @@
 
 [English](README.md) · [Manual em português](docs/manual.pt-BR.md) · [English manual](docs/manual.en.md)
 
+![Resultado representativo do IdentifyFibers](docs/assets/representative.png)
+
+*Resultado representativo no CellProfiler: 79 objetos de fibra. Ajustes do exemplo: larguras de 1–4 px, Otsu, comprimento mínimo de 15 px e deflexão máxima de 35°. Captura fornecida pelo usuário; esses valores não são os padrões do plugin.*
+
 Plugin Python para identificar e medir fibras claras em **imagens 2D em tons de cinza** no CellProfiler. O realce Sato destaca estruturas alongadas; um rastreador inspirado no FIRE extrai as linhas centrais, e uma divisão orientada pela direção e pela intensidade atribui os pixels das regiões aos objetos.
 
 O plugin oferece um único método: **Sato + FIRE-inspired**. Utiliza NumPy, SciPy, scikit-image e Matplotlib do ambiente do CellProfiler. Não requer MATLAB, instalação do CT-FIRE, pacote de curvelets ou download de modelos. É uma implementação independente, sem equivalência numérica estabelecida com FIRE ou CT-FIRE.
 
-**Versão 0.3.2:** resolução de trajetórias duplicadas e deslocadas com apoio da intensidade, protegendo estruturas vizinhas resolvidas e cruzamentos em ângulo pequeno. Sem parâmetros adicionais. Veja [validação e imagens antes/depois](VALIDATION.md).
+**Primeira versão pública: v1.0.0.** Inclui correção de trajetórias duplicadas com apoio da intensidade, help em inglês e manuais bilíngues. Consulte as [notas da versão](CHANGELOG.md) e a [validação](VALIDATION.md).
 
 ## Instalação
 
@@ -25,6 +29,8 @@ Os manuais apresentam instalação, efeitos biológicos esperados ao aumentar ou
 - [Manual de uso — Português](docs/manual.pt-BR.md)
 - [User manual — English](docs/manual.en.md)
 - [Validação e notas da versão](VALIDATION.md)
+
+- [Preparação da publicação no GitHub](docs/PUBLISHING.md)
 
 ## Base científica
 

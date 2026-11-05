@@ -2,9 +2,15 @@
 
 [Português](README.pt-BR.md) · [English manual](docs/manual.en.md) · [Manual em português](docs/manual.pt-BR.md)
 
+![IdentifyFibers representative result](docs/assets/representative.png)
+
+*Representative CellProfiler output: 79 fiber objects. Example settings: widths 1–4 px, Otsu, minimum length 15 px, maximum deflection 35°. Supplied screenshot; these settings are not the plugin defaults.*
+
 A Python plugin for identifying and measuring bright fibers in **2D grayscale images** in CellProfiler. Sato enhancement highlights elongated structures; a FIRE-inspired tracer extracts centerlines, and a direction- and intensity-guided partition assigns region pixels to individual objects.
 
 The plugin offers one method: **Sato + FIRE-inspired**. It uses NumPy, SciPy, scikit-image and Matplotlib from the CellProfiler environment. No MATLAB, CT-FIRE installation, curvelets package or model download is required. This is an independent implementation, not an equivalent port of FIRE or CT-FIRE.
+
+**First public release: v1.0.0.** Includes image-supported duplicate-path correction, English plugin help and bilingual manuals. See [release notes](CHANGELOG.md) and [validation](VALIDATION.md).
 
 ## Install
 
@@ -23,6 +29,8 @@ The manuals provide installation, biological interpretation of increasing/decrea
 - [User manual — English](docs/manual.en.md)
 - [Manual de uso — Português](docs/manual.pt-BR.md)
 - [Validation and release notes](VALIDATION.md)
+
+- [Preparing the GitHub release](docs/PUBLISHING.md)
 
 ## Scientific basis
 
