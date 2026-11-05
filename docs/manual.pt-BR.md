@@ -133,7 +133,7 @@ O painel de medidas utiliza uma tabela com bordas e colunas **Measurement / Mean
 
 ![Resultado representativo do IdentifyFibers](assets/representative.png)
 
-Resultado representativo selecionado para a primeira versão pública. A captura do CellProfiler fornecida pelo usuário mostra 79 objetos, larguras esperadas de 1–4 px, limiarização por Otsu, comprimento mínimo de 15 px e deflexão máxima de 35°. São ajustes do exemplo, não os padrões do plugin nem uma contagem biológica validada. A imagem de origem e o pipeline completo desse exemplo não acompanham o pacote; a captura não constitui um benchmark reproduzível. 
+Resultado representativo selecionado para a primeira versão pública. A captura do CellProfiler fornecida pelo usuário mostra 57 objetos, larguras esperadas de 1–8 px, limiarização por Otsu, comprimento mínimo de 15 px e deflexão máxima de 35°. São ajustes padrões do plugin, mas não refletem uma contagem biológica validada. A imagem de origem e o pipeline completo desse exemplo não acompanham o pacote; a captura não constitui um benchmark reproduzível. 
 
 ## Medidas e exportação
 
