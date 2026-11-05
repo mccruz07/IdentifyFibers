@@ -30,8 +30,6 @@ The manuals provide installation, biological interpretation of increasing/decrea
 - [Manual de uso — Português](docs/manual.pt-BR.md)
 - [Validation and release notes](VALIDATION.md)
 
-- [Preparing the GitHub release](docs/PUBLISHING.md)
-
 ## Scientific basis
 
 Based on FIRE principles described by **Stein AM, Vader DA, Jawerth LM, Weitz DA, Sander LM.** An algorithm for extracting the network geometry of three-dimensional collagen gels. *Journal of Microscopy*. 2008;232(3):463–475. [doi:10.1111/j.1365-2818.2008.02141.x](https://doi.org/10.1111/j.1365-2818.2008.02141.x).
