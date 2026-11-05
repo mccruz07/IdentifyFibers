@@ -20,8 +20,6 @@ The plugin uses NumPy, SciPy, scikit-image and Matplotlib from the CellProfiler 
 4. Restart CellProfiler and add **IdentifyFibers** under **Object Processing**. Keep only one installed wrapper and engine.
 5. Load a representative image and run in test mode. See the [quick start](docs/manual.en.md#quick-start).
 
-Optional package check: `python verify_package.py /absolute/path/to/plugins`. This verifies file hashes; it does not replace testing inside CellProfiler.
-
 ## Documentation
 
 The manuals provide installation, biological interpretation of increasing/decreasing parameters, processing diagrams, measurement definitions, troubleshooting and references. The plugin help is in English.
