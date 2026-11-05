@@ -1,6 +1,6 @@
 # IdentifyFibers user manual
 
-**Sato + FIRE-inspired · Version 0.1 · 2D images**
+**Sato + FIRE-inspired · Version 1.0.0 · 2D images**
 
 [Português](manual.pt-BR.md) · [Repository home](../README.md)
 
@@ -21,7 +21,7 @@ A collagen image can contain isolated fibers, intertwined bundles and crossing s
 
 This plugin is **based on FIRE (Fiber Extraction)**, particularly the principles of seed selection within a network and directional extension of fiber paths described by Stein et al. [1]. It is an independent Python implementation for **2D**, with **Sato enhancement** [2] instead of curvelet preprocessing. It is neither the original FIRE/CT-FIRE software nor a numerically equivalent implementation. It does not reconstruct a 3D network from a 2D projection.
 
-Only Sato + FIRE-inspired is exposed in the CellProfiler interface. No MATLAB or external tracing executable is required. The code uses scientific Python libraries available in the CellProfiler environment. 
+Only Sato + FIRE-inspired is exposed in the CellProfiler interface. No MATLAB or external tracing executable is required. The code uses scientific Python libraries available in the CellProfiler environment. See [installation](../README.md#install) and [validation limits](../VALIDATION.md).
 
 ## Quick start
 
@@ -107,7 +107,7 @@ flowchart TD
 3. **Segmentation and mask cleanup.** Thresholding selects candidate foreground, or an external binary mask supplies it. Disk closing can connect small gaps, and connected components below minimum area are removed. These operations can alter topology before tracing; inspect their biological plausibility.
 4. **Distance map and nucleation.** Distance to the mask background identifies interior ridges. Local distance maxima provide seeds, with deterministic selection and fallback for components without a selected seed. A skeleton is not used to seed or extend the FIRE-inspired paths.
 5. **Directional extension and joining.** Paths grow in both directions from seeds, seeking local distance maxima on surrounding square perimeters. Candidate connections must remain inside foreground. Local direction and deflection restrict continuation; compatible path ends can be joined. This is the FIRE-inspired nucleation/extension part, with independent Python implementation choices.
-6. **Duplicate and shared-path resolution.** Similar retraces are suppressed. Long near-parallel shared runs are resolved using supported proximity, direction and continuity. One path retains the shared corridor; exclusive remaining arms may survive as separate paths if they meet the length criterion. Short crossings are treated differently from long duplicated runs. Nearby paths are not automatically merged solely because they touch. Version 0.3.2 also checks slightly offset paths inside broad fibers, using local mask width and the original intensity. A transverse intensity valley protects resolved neighboring strands; a sustained change of side protects shallow crossings. Wider matches require a longer shared run. The winning path keeps the common segment, while exclusive arms are retained subject to the length filter. Some ambiguous duplicates can remain, especially where the image does not resolve individual strands.
+6. **Duplicate and shared-path resolution.** Similar retraces are suppressed. Long near-parallel shared runs are resolved using supported proximity, direction and continuity. One path retains the shared corridor; exclusive remaining arms may survive as separate paths if they meet the length criterion. Short crossings are treated differently from long duplicated runs. Nearby paths are not automatically merged solely because they touch. The plugin also checks slightly offset paths inside broad fibers, using local mask width and the original intensity. A transverse intensity valley protects resolved neighboring strands; a sustained change of side protects shallow crossings. Wider matches require a longer shared run. The winning path keeps the common segment, while exclusive arms are retained subject to the length filter. Some ambiguous duplicates can remain, especially where the image does not resolve individual strands.
 7. **Length filtering and object partition.** Paths below minimum length are rejected. Accepted centerlines seed a multi-source geodesic partition within foreground components containing an accepted path. Distance, changes in original intensity and a local directional term govern pixel assignment. Each assigned pixel receives exactly one object label; no artificial exclusion strip is introduced between objects. Isolated components without an accepted seed remain unassigned. In a retained connected component, pixels of a rejected short branch can still be assigned to another accepted fiber.
 8. **Measurement and quality control.** Path geometry, mask-based width, region intensity and centroid-based neighborhood measures are calculated. A separate skeleton of the segmented mask provides the geometric-coverage reference. Optional FFT uses the original image, independently of the object segmentation.
 
@@ -131,9 +131,9 @@ A centroid is one point and can lie far from a curved fiber. Using the whole cen
 
 The measurement panel restores a bordered table with **Measurement / Mean–value / Unit**. Count covers all accepted fibers in the analysis, not only the displayed zoom. Shared-tail/segment repair counters count algorithmic corrections, not validated biological errors. The default analysis-settings panel is replaced by the FFT distribution when FFT is enabled.
 
-![IdentifyFibers overview](assets/overview.png)
+![Representative IdentifyFibers output](assets/representative.png)
 
-Example of the restored table; regression image, not the latest screenshot. See [validation details](../VALIDATION.md).
+Representative output selected for the first public release. This user-provided CellProfiler screenshot shows 79 objects, expected widths of 1–4 px, Otsu thresholding, minimum path length of 15 px and maximum deflection of 35°. These are example settings, not the plugin defaults or a validated biological fiber count. The underlying image and complete pipeline for this example are not included; the screenshot is not a reproducible benchmark. Separate regression evidence is documented in [VALIDATION.md](../VALIDATION.md).
 
 ## Measurements and export
 
@@ -168,6 +168,13 @@ Use **MeasureObjectSizeShape** on Fibers if you need explicit region area measur
 | Low coverage | Inspect FiberUncoveredSkeleton; check missing faint branches, overstrict length filtering, segmentation errors and tracing failures. There is no universal target coverage. |
 | FFT and fiber alignment differ | They use different inputs/weighting. Check frequency limits, mask shape and image artifacts before interpreting the difference biologically. |
 
+### Image-supported duplicate-path correction
+
+The previous partial-overlap check used a fixed 1.5 px centerline distance. It could miss slightly offset retraces inside a broad fiber. The new check retains that narrow comparison and adds a width-dependent comparison, capped at 4 px. This broader comparison requires at least 12 px and three local widths of shared path, supported foreground connections, compatible directions and reciprocal path matching. A drop of more than 20% below the dimmer endpoint in the lightly smoothed transverse intensity profile vetoes that match. This is an algorithmic image-evidence criterion, not a calibrated biological threshold.
+
+A sustained side switch is treated as evidence of a crossing rather than a duplicate. Without usable intensity contrast, wider matching is disabled. No new controls are needed; existing pipeline settings remain compatible. The segmentation mask is not eroded, and no exclusion gap is inserted. The correction operates on path identity before the usual length filter and pixel partition. It does not establish how many biological fibers lie inside an unresolved or saturated bundle.
+
+See the [controlled tests and before/after microscopy comparison](../VALIDATION.md). A lower object count alone is not evidence of improvement: the revision can also preserve a crossing that an earlier rule incorrectly trimmed.
 
 ## Reproducibility and references
 
@@ -178,4 +185,4 @@ Record image pixel size, preprocessing, input image name, parent regions, plugin
 1. **Stein AM, Vader DA, Jawerth LM, Weitz DA, Sander LM.** An algorithm for extracting the network geometry of three-dimensional collagen gels. *Journal of Microscopy*. 2008;232(3):463–475. [doi:10.1111/j.1365-2818.2008.02141.x](https://doi.org/10.1111/j.1365-2818.2008.02141.x). Original FIRE reference; supports the methodological inspiration, not validation of this plugin.
 2. **Sato Y, Nakajima S, Shiraga N, Atsumi H, Yoshida S, Koller T, Gerig G, Kikinis R.** Three-dimensional multi-scale line filter for segmentation and visualization of curvilinear structures in medical images. *Medical Image Analysis*. 1998;2(2):143–168. [doi:10.1016/S1361-8415(98)80009-1](https://doi.org/10.1016/S1361-8415(98)80009-1).
 
-Original FIRE copyright and license are retained in [LICENSE_FIRE.txt](../LICENSE_FIRE.txt); see [NOTICE.txt](../NOTICE.txt). The software is not endorsed by the original FIRE authors.
+Original FIRE copyright and license are retained in [LICENSE_FIRE.txt](../LICENSE_FIRE.txt); see [NOTICE.txt](../NOTICE.txt). The software is not endorsed by the original FIRE authors. Known validation limits and test instructions are in [VALIDATION.md](../VALIDATION.md).

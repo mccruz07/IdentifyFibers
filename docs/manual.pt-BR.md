@@ -1,6 +1,6 @@
 # Manual de uso do IdentifyFibers
 
-**Sato + FIRE-inspired · Versão 0.1.0 · Imagens 2D**
+**Sato + FIRE-inspired · Versão 1.0.0 · Imagens 2D**
 
 [English](manual.en.md) · [Página inicial](../README.pt-BR.md)
 
@@ -21,7 +21,7 @@ Uma imagem de colágeno pode conter fibras isoladas, feixes entrelaçados e estr
 
 O plugin é **baseado no FIRE (Fiber Extraction)**, particularmente nos princípios de seleção de sementes no interior da rede e extensão direcional das trajetórias descritos por Stein et al. [1]. Trata-se de uma implementação Python independente para **2D**, com **realce Sato** [2] em lugar do pré-processamento por curvelets. Não é o FIRE/CT-FIRE original nem uma implementação com equivalência numérica demonstrada. Também não reconstrói uma rede tridimensional a partir de uma projeção 2D.
 
-A interface do CellProfiler oferece somente Sato + FIRE-inspired. 
+A interface do CellProfiler oferece somente Sato + FIRE-inspired. Não requer MATLAB ou executável externo de rastreamento. O código utiliza bibliotecas científicas Python disponíveis no ambiente do CellProfiler. Consulte a [instalação](../README.pt-BR.md#instalação) e os [limites da validação](../VALIDATION.md).
 
 ## Início rápido
 
@@ -109,7 +109,7 @@ flowchart TD
 3. **Segmentação e tratamento da máscara.** A limiarização seleciona o primeiro plano candidato, ou uma máscara binária externa o fornece. O fechamento com disco pode conectar pequenas lacunas, e componentes abaixo da área mínima são removidos. Essas operações podem alterar a topologia antes do rastreamento; sua plausibilidade biológica deve ser inspecionada.
 4. **Mapa de distância e nucleação.** A distância ao fundo da máscara evidencia regiões internas. Máximos locais fornecem sementes, com seleção determinística e uma alternativa para componentes sem semente selecionada. Um skeleton não é utilizado para iniciar ou estender as trajetórias FIRE-inspired.
 5. **Extensão direcional e união.** As trajetórias crescem em duas direções a partir das sementes, buscando máximos locais de distância em perímetros quadrados ao redor da posição atual. As conexões candidatas devem permanecer no primeiro plano. Direção local e deflexão restringem a continuidade; extremidades compatíveis podem ser unidas. Essa é a parte de nucleação/extensão inspirada no FIRE, com escolhas próprias da implementação Python.
-6. **Resolução de duplicatas e trechos compartilhados.** Rastreamentos muito semelhantes são suprimidos. Trechos longos, próximos e aproximadamente paralelos são resolvidos considerando suporte na máscara, direção e continuidade. Uma trajetória conserva o trecho comum; os braços exclusivos restantes podem sobreviver como caminhos separados se cumprirem o comprimento mínimo. Cruzamentos curtos são tratados de maneira diferente de percursos longos duplicados. Trajetórias próximas não são automaticamente unidas apenas por se tocarem. A versão 0.3.2 também examina caminhos ligeiramente deslocados dentro de fibras largas, utilizando a largura local da máscara e a intensidade original. Um vale transversal de intensidade protege estruturas vizinhas resolvidas; uma mudança sustentada de lado protege cruzamentos em ângulo pequeno. Correspondências mais largas exigem um trecho comum mais longo. A trajetória escolhida conserva o segmento comum, e os braços exclusivos são preservados, sujeitos ao filtro de comprimento. Algumas duplicatas ambíguas podem permanecer, sobretudo quando a imagem não resolve as estruturas individuais.
+6. **Resolução de duplicatas e trechos compartilhados.** Rastreamentos muito semelhantes são suprimidos. Trechos longos, próximos e aproximadamente paralelos são resolvidos considerando suporte na máscara, direção e continuidade. Uma trajetória conserva o trecho comum; os braços exclusivos restantes podem sobreviver como caminhos separados se cumprirem o comprimento mínimo. Cruzamentos curtos são tratados de maneira diferente de percursos longos duplicados. Trajetórias próximas não são automaticamente unidas apenas por se tocarem. O plugin também examina caminhos ligeiramente deslocados dentro de fibras largas, utilizando a largura local da máscara e a intensidade original. Um vale transversal de intensidade protege estruturas vizinhas resolvidas; uma mudança sustentada de lado protege cruzamentos em ângulo pequeno. Correspondências mais largas exigem um trecho comum mais longo. A trajetória escolhida conserva o segmento comum, e os braços exclusivos são preservados, sujeitos ao filtro de comprimento. Algumas duplicatas ambíguas podem permanecer, sobretudo quando a imagem não resolve as estruturas individuais.
 7. **Filtro de comprimento e divisão dos objetos.** Caminhos menores que o mínimo são rejeitados. As linhas centrais aceitas servem como sementes de uma divisão geodésica com múltiplas origens, restrita aos componentes de primeiro plano que contêm uma trajetória aceita. Distância, mudanças na intensidade original e um termo direcional local governam a atribuição. Cada pixel atribuído recebe um único rótulo; não se introduz uma faixa artificial de exclusão entre objetos. Componentes isolados sem semente aceita permanecem sem atribuição. Em um componente conectado preservado, pixels de um ramo curto rejeitado ainda podem ser atribuídos a outra fibra aceita.
 8. **Medidas e controle de qualidade.** São calculadas geometria das trajetórias, largura baseada na máscara, intensidade das regiões e vizinhança entre centroides. Um esqueleto separado da máscara segmentada fornece a referência da cobertura geométrica. A FFT opcional utiliza a imagem original, independentemente da segmentação dos objetos.
 
@@ -133,9 +133,9 @@ A **cobertura geométrica** é `100 × pixels cobertos do esqueleto de referênc
 
 O painel de medidas utiliza uma tabela com bordas e colunas **Measurement / Mean–value / Unit**. A contagem abrange todas as fibras aceitas na análise, não apenas a área ampliada. Os contadores de reparos de extremidades/segmentos compartilhados indicam correções algorítmicas, não erros biológicos validados. Quando ativada, a distribuição FFT substitui o painel de configurações.
 
-![IdentifyFibers overview](assets/overview.png)
+![Resultado representativo do IdentifyFibers](assets/representative.png)
 
-Exemplo da tabela restaurada; imagem de regressão, não a captura mais recente. Consulte os [detalhes da validação](../VALIDATION.md).
+Resultado representativo selecionado para a primeira versão pública. A captura do CellProfiler fornecida pelo usuário mostra 79 objetos, larguras esperadas de 1–4 px, limiarização por Otsu, comprimento mínimo de 15 px e deflexão máxima de 35°. São ajustes do exemplo, não os padrões do plugin nem uma contagem biológica validada. A imagem de origem e o pipeline completo desse exemplo não acompanham o pacote; a captura não constitui um benchmark reproduzível. As evidências de regressão estão documentadas separadamente em [VALIDATION.md](../VALIDATION.md).
 
 ## Medidas e exportação
 
@@ -170,14 +170,21 @@ Utilize **MeasureObjectSizeShape** sobre Fibers para obter medidas explícitas d
 | Cobertura baixa | Examine FiberUncoveredSkeleton; procure ramos fracos ausentes, filtro de comprimento restritivo, erros de segmentação e falhas de rastreamento. Não há uma cobertura-alvo universal. |
 | FFT e alinhamento das fibras diferem | Utilizam entradas/ponderações distintas. Confira faixa de frequência, formato da máscara e artefatos antes de interpretar biologicamente a diferença. |
 
+### Correção de trajetórias duplicadas com apoio da intensidade
+
+A comparação anterior de sobreposições parciais utilizava uma distância fixa de 1,5 px entre linhas centrais. Isso podia deixar passar rastreamentos ligeiramente deslocados dentro de uma fibra larga. A nova regra mantém essa comparação estreita e acrescenta uma comparação proporcional à largura, limitada a 4 px. A comparação ampliada exige um trecho comum de pelo menos 12 px e três larguras locais, conexões sustentadas pela máscara, direções compatíveis e correspondência recíproca entre caminhos. Uma queda superior a 20% em relação à extremidade menos intensa do perfil transversal, após suavização leve, impede essa correspondência. É um critério algorítmico de evidência na imagem, não um limite biológico calibrado.
+
+Uma mudança sustentada de lado é tratada como evidência de cruzamento, em vez de duplicata. Sem contraste de intensidade utilizável, a comparação ampliada é desativada. Não há novos controles; os pipelines existentes permanecem compatíveis. A máscara de segmentação não é erodida e não se insere uma faixa de exclusão. A correção atua sobre a identidade das trajetórias antes do filtro habitual de comprimento e da divisão de pixels. Ela não estabelece quantas fibras biológicas existem em um feixe não resolvido ou saturado.
+
+Consulte os [testes controlados e a comparação antes/depois na imagem de microscopia](../VALIDATION.md). Uma contagem menor, isoladamente, não comprova melhora: a revisão também pode preservar um cruzamento que a regra anterior cortava indevidamente.
 
 ## Reprodutibilidade e referências
 
 Registre tamanho do pixel, pré-processamento, nome da imagem de entrada, regiões parentais, versão do plugin, configurações completas do pipeline e sobreposições representativas. Mantenha aquisição e análise comparáveis entre grupos. Utilize dados de imagem originais, não uma captura de tela, ao relatar uma sobreposição não resolvida. Um cruzamento anotado e o arquivo `.cppipe` identificam a falha com maior precisão que uma visão geral isolada.
 
-**Formulação de Métodos para adaptar:** “As estruturas mais intensas foram analisadas no CellProfiler com o IdentifyFibers [versão], implementação Python independente em 2D que combina realce Sato e rastreamento inspirado no FIRE (Stein et al., 2008). As larguras esperadas foram [valores] px, a segmentação utilizou [método e valores], e trajetórias menores que [valor] px foram excluídas.” Preencha somente os parâmetros efetivamente utilizados; esse modelo não é uma descrição metodológica concluída.
+**Formulação de Métodos para adaptar:** “As estruturas claras foram analisadas no CellProfiler com o IdentifyFibers [versão], implementação Python independente em 2D que combina realce Sato e rastreamento inspirado no FIRE (Stein et al., 2008). As larguras esperadas foram [valores] px, a segmentação utilizou [método e valores], e trajetórias menores que [valor] px foram excluídas.” Preencha somente os parâmetros efetivamente utilizados; esse modelo não é uma descrição metodológica concluída.
 
 1. **Stein AM, Vader DA, Jawerth LM, Weitz DA, Sander LM.** An algorithm for extracting the network geometry of three-dimensional collagen gels. *Journal of Microscopy*. 2008;232(3):463–475. [doi:10.1111/j.1365-2818.2008.02141.x](https://doi.org/10.1111/j.1365-2818.2008.02141.x). Referência original do FIRE; fundamenta a inspiração metodológica, não a validação deste plugin.
 2. **Sato Y, Nakajima S, Shiraga N, Atsumi H, Yoshida S, Koller T, Gerig G, Kikinis R.** Three-dimensional multi-scale line filter for segmentation and visualization of curvilinear structures in medical images. *Medical Image Analysis*. 1998;2(2):143–168. [doi:10.1016/S1361-8415(98)80009-1](https://doi.org/10.1016/S1361-8415(98)80009-1).
 
-Copyright e licença originais do FIRE estão preservados em [LICENSE_FIRE.txt](../LICENSE_FIRE.txt); consulte [NOTICE.txt](../NOTICE.txt). O software não é endossado pelos autores originais do FIRE. 
+Copyright e licença originais do FIRE estão preservados em [LICENSE_FIRE.txt](../LICENSE_FIRE.txt); consulte [NOTICE.txt](../NOTICE.txt). O software não é endossado pelos autores originais do FIRE. Os limites conhecidos da validação e as instruções de teste estão em [VALIDATION.md](../VALIDATION.md).
