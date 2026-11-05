@@ -131,7 +131,7 @@ The measurement panel restores a bordered table with **Measurement / Mean–valu
 
 ![Representative IdentifyFibers output](assets/representative.png)
 
-Representative output selected for the first public release. This user-provided CellProfiler screenshot shows 79 objects, expected widths of 1–4 px, Otsu thresholding, minimum path length of 15 px and maximum deflection of 35°. These are example settings, not the plugin defaults or a validated biological fiber count. The underlying image and complete pipeline for this example are not included; the screenshot is not a reproducible benchmark. 
+Representative output selected for the first public release. This user-provided CellProfiler screenshot shows 57 objects, expected widths of 1–8 px, Otsu thresholding, minimum path length of 15 px and maximum deflection of 35°. These are the plugin defaults settings, but not a validated biological fiber count. The underlying image and complete pipeline for this example are not included; the screenshot is not a reproducible benchmark. 
 
 ## Measurements and export
 
