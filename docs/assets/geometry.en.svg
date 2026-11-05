@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="330" viewBox="0 0 1080 330" role="img">
+<title>Conceptual diagrams — not experimental results</title>
+<rect width="1080" height="330" fill="white"/>
+<g font-family="Arial, sans-serif">
+<rect x="10" y="12" width="345" height="272" rx="12" fill="#f1f6f8" stroke="#ccdade"/>
+<rect x="365" y="12" width="345" height="272" rx="12" fill="#f1f6f8" stroke="#ccdade"/>
+<rect x="720" y="12" width="345" height="272" rx="12" fill="#f1f6f8" stroke="#ccdade"/>
+<text x="26" y="45" font-size="18" font-weight="700" fill="#183642">Width is not length</text>
+<text x="381" y="45" font-size="17" font-weight="700" fill="#183642">A crossing is not a duplicate</text>
+<text x="736" y="45" font-size="18" font-weight="700" fill="#183642">Long shared corridor</text>
+<path d="M 52 194 Q 135 62 288 115" fill="none" stroke="#b5dfe1" stroke-width="30" stroke-linecap="round"/>
+<path d="M 52 194 Q 135 62 288 115" fill="none" stroke="#087e8b" stroke-width="3"/>
+<path d="M 161 92 L 169 123 M 156 96 L 161 92 L 167 93 M 163 121 L 169 123 L 172 118" fill="none" stroke="#b33f72" stroke-width="2"/>
+<text x="26" y="232" font-size="14" font-weight="400" fill="#183642">Width: across the fiber</text>
+<text x="26" y="255" font-size="14" font-weight="400" fill="#183642">Length: along the path</text>
+<path d="M 408 196 L 659 90" stroke="#087e8b" stroke-width="7"/>
+<path d="M 434 83 L 634 201" stroke="#b33f72" stroke-width="7"/>
+<circle cx="540" cy="142" r="16" stroke="#435962" stroke-width="1.5" stroke-dasharray="4 3" fill="none"/>
+<text x="381" y="232" font-size="14" font-weight="400" fill="#183642">Short intersection</text>
+<text x="381" y="255" font-size="13" font-weight="400" fill="#183642">Keep distinct paths when supported</text>
+<path d="M 757 87 L 835 144 L 1037 144" stroke="#087e8b" stroke-width="7" fill="none"/>
+<path d="M 757 201 L 835 144" stroke="#b33f72" stroke-width="7" fill="none"/>
+<path d="M 865 160 L 1029 160" stroke="#435962" stroke-width="1.5"/>
+<text x="736" y="232" font-size="12" font-weight="400" fill="#183642">One owner for a supported shared run</text>
+<text x="736" y="255" font-size="12" font-weight="400" fill="#183642">Exclusive arms can remain separate</text>
+<text x="15" y="312" font-size="12" font-weight="400" fill="#183642">Conceptual diagrams — not experimental results</text>
+</g></svg>
