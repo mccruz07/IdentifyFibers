@@ -1,6 +1,6 @@
 # IdentifyFibers user manual
 
-**Sato + FIRE-inspired · Version 0.3.2 · 2D images**
+**Sato + FIRE-inspired · Version 0.1 · 2D images**
 
 [Português](manual.pt-BR.md) · [Repository home](../README.md)
 
@@ -21,7 +21,7 @@ A collagen image can contain isolated fibers, intertwined bundles and crossing s
 
 This plugin is **based on FIRE (Fiber Extraction)**, particularly the principles of seed selection within a network and directional extension of fiber paths described by Stein et al. [1]. It is an independent Python implementation for **2D**, with **Sato enhancement** [2] instead of curvelet preprocessing. It is neither the original FIRE/CT-FIRE software nor a numerically equivalent implementation. It does not reconstruct a 3D network from a 2D projection.
 
-Only Sato + FIRE-inspired is exposed in the CellProfiler interface. No MATLAB or external tracing executable is required. The code uses scientific Python libraries available in the CellProfiler environment. See [installation](../README.md#install) and [validation limits](../VALIDATION.md).
+Only Sato + FIRE-inspired is exposed in the CellProfiler interface. No MATLAB or external tracing executable is required. The code uses scientific Python libraries available in the CellProfiler environment. 
 
 ## Quick start
 
@@ -168,13 +168,6 @@ Use **MeasureObjectSizeShape** on Fibers if you need explicit region area measur
 | Low coverage | Inspect FiberUncoveredSkeleton; check missing faint branches, overstrict length filtering, segmentation errors and tracing failures. There is no universal target coverage. |
 | FFT and fiber alignment differ | They use different inputs/weighting. Check frequency limits, mask shape and image artifacts before interpreting the difference biologically. |
 
-### What changed in version 0.3.2?
-
-The previous partial-overlap check used a fixed 1.5 px centerline distance. It could miss slightly offset retraces inside a broad fiber. The new check retains that narrow comparison and adds a width-dependent comparison, capped at 4 px. This broader comparison requires at least 12 px and three local widths of shared path, supported foreground connections, compatible directions and reciprocal path matching. A drop of more than 20% below the dimmer endpoint in the lightly smoothed transverse intensity profile vetoes that match. This is an algorithmic image-evidence criterion, not a calibrated biological threshold.
-
-A sustained side switch is treated as evidence of a crossing rather than a duplicate. Without usable intensity contrast, wider matching is disabled. No new controls are needed; existing pipeline settings remain compatible. The segmentation mask is not eroded, and no exclusion gap is inserted. The correction operates on path identity before the usual length filter and pixel partition. It does not establish how many biological fibers lie inside an unresolved or saturated bundle.
-
-See the [controlled tests and before/after microscopy comparison](../VALIDATION.md). A lower object count alone is not evidence of improvement: the revision can also preserve a crossing that an earlier rule incorrectly trimmed.
 
 ## Reproducibility and references
 
@@ -185,4 +178,4 @@ Record image pixel size, preprocessing, input image name, parent regions, plugin
 1. **Stein AM, Vader DA, Jawerth LM, Weitz DA, Sander LM.** An algorithm for extracting the network geometry of three-dimensional collagen gels. *Journal of Microscopy*. 2008;232(3):463–475. [doi:10.1111/j.1365-2818.2008.02141.x](https://doi.org/10.1111/j.1365-2818.2008.02141.x). Original FIRE reference; supports the methodological inspiration, not validation of this plugin.
 2. **Sato Y, Nakajima S, Shiraga N, Atsumi H, Yoshida S, Koller T, Gerig G, Kikinis R.** Three-dimensional multi-scale line filter for segmentation and visualization of curvilinear structures in medical images. *Medical Image Analysis*. 1998;2(2):143–168. [doi:10.1016/S1361-8415(98)80009-1](https://doi.org/10.1016/S1361-8415(98)80009-1).
 
-Original FIRE copyright and license are retained in [LICENSE_FIRE.txt](../LICENSE_FIRE.txt); see [NOTICE.txt](../NOTICE.txt). The software is not endorsed by the original FIRE authors. Known validation limits and test instructions are in [VALIDATION.md](../VALIDATION.md).
+Original FIRE copyright and license are retained in [LICENSE_FIRE.txt](../LICENSE_FIRE.txt); see [NOTICE.txt](../NOTICE.txt). The software is not endorsed by the original FIRE authors.
