@@ -6,11 +6,11 @@
 
 *Representative CellProfiler output: 79 fiber objects. Example settings: widths 1–4 px, Otsu, minimum length 15 px, maximum deflection 35°. Supplied screenshot; these settings are not the plugin defaults.*
 
-A Python plugin for identifying and measuring bright fibers in **2D grayscale images** in CellProfiler. Sato enhancement highlights elongated structures; a FIRE-inspired tracer extracts centerlines, and a direction- and intensity-guided partition assigns region pixels to individual objects.
+A Python plugin for identifying and measuring bright fibers in **2D grayscale images** in CellProfiler. We use a Sato enhancement highlights elongated structures; a FIRE-inspired tracer to extracts centerlines, and a direction- and intensity-guided partition to assigns region pixels to individual objects.
 
-The plugin offers one method: **Sato + FIRE-inspired**. It uses NumPy, SciPy, scikit-image and Matplotlib from the CellProfiler environment. No MATLAB, CT-FIRE installation, curvelets package or model download is required. This is an independent implementation, not an equivalent port of FIRE or CT-FIRE.
+The plugin uses NumPy, SciPy, scikit-image and Matplotlib from the CellProfiler environment. This is an independent implementation, not an equivalent port of FIRE or CT-FIRE.
 
-**First public release: v1.0.0.** Includes image-supported duplicate-path correction, English plugin help and bilingual manuals. See [release notes](CHANGELOG.md) and [validation](VALIDATION.md).
+**First public release: v1.0.0.**
 
 ## Install
 
@@ -36,6 +36,6 @@ The manuals provide installation, biological interpretation of increasing/decrea
 
 Based on FIRE principles described by **Stein AM, Vader DA, Jawerth LM, Weitz DA, Sander LM.** An algorithm for extracting the network geometry of three-dimensional collagen gels. *Journal of Microscopy*. 2008;232(3):463–475. [doi:10.1111/j.1365-2818.2008.02141.x](https://doi.org/10.1111/j.1365-2818.2008.02141.x).
 
-The original FIRE addressed 3D networks; this plugin implements a 2D Sato-based workflow. Cite the FIRE paper as the methodological inspiration, identify this plugin and its version in Methods, and describe the parameters used. Do not report this analysis as original CT-FIRE output.
+The original FIRE addressed 3D networks; this plugin implements a 2D Sato-based workflow.
 
 See [NOTICE.txt](NOTICE.txt), [FIRE license](LICENSE_FIRE.txt) and [package license](LICENSE). Attribution does not imply endorsement by the original authors.
