@@ -1,6 +1,6 @@
 # IdentifyFibers user manual
 
-**Sato + FIRE-inspired · Version 1.0.0 · 2D images**
+**Sato + FIRE-inspired · Version 1.0.1 · 2D images**
 
 [Português](manual.pt-BR.md) · [Repository home](../README.md)
 
@@ -20,6 +20,8 @@
 A collagen image can contain isolated fibers, intertwined bundles and crossing structures with similar fluorescence. Extracting an elongated object does not, by itself, establish that it represents one biological fiber. IdentifyFibers provides centerlines and pixel regions so that these two representations can be checked against the original signal.
 
 This plugin is **based on FIRE (Fiber Extraction)**, particularly the principles of seed selection within a network and directional extension of fiber paths described by Stein et al. [1]. It is an independent Python implementation for **2D**, with **Sato enhancement** [2] instead of curvelet preprocessing. It is neither the original FIRE/CT-FIRE software nor a numerically equivalent implementation. It does not reconstruct a 3D network from a 2D projection.
+
+Only Sato + FIRE-inspired is exposed in the CellProfiler interface. No MATLAB or external tracing executable is required. The code uses scientific Python libraries available in the CellProfiler environment. See [installation](../README.md#install) and [validation limits](../VALIDATION.md).
 
 ## Quick start
 
@@ -69,7 +71,7 @@ Hidden values remain active. Turning **Show advanced settings** off does not res
 |---|---:|---|
 | Number of enhancement scales | 4 | More scales sample the width interval more finely and take longer; fewer sample it more coarsely. More does not guarantee better separation. With 1, only the minimum scale is used. |
 | Closing radius | 1 px | Larger closing can fill small mask gaps, but also join neighboring fibers. Smaller preserves gaps; 0 disables closing. |
-| Minimum segmented area | 10 px² | Larger removes small isolated mask components; smaller retains them. This is applied before tracing and does not remove individual short fibers inside a connected network. |
+| Minimum segmented area | 10 px² | Diagonal neighbors belong to the same component. Larger removes small isolated mask components; smaller retains them. This is applied before tracing and does not remove individual short fibers inside a connected network. |
 | Maximum crossing deflection | 35° | Larger permits sharper turns and possible switches at junctions; smaller favors straight continuation but can truncate curved fibers. |
 | Minimum points for branch direction | 5 | Larger smooths directional estimates but can miss tight bends; smaller follows local irregularities and noise. The actual window also depends on local width. |
 | Direction guidance for object boundaries | 1 | Larger favors transverse expansion from centerlines; smaller gives more relative influence to distance and input intensity. Zero removes the directional term. It neither changes paths nor creates a separating gap. |
@@ -101,7 +103,7 @@ flowchart TD
 ```
 
 1. **Input and analysis region.** Nonfinite and masked-out pixels are excluded. Each parent object is processed independently in Within objects mode. Input intensity is retained for measurements.
-2. **Normalization and Sato enhancement.** Valid intensities are rescaled using the 1st and 99.5th percentiles, then Sato highlights bright elongated structures over the selected scales. The response is normalized again. The Gaussian scales are sampled between `max(0.5, minimum_width/2)` and `max(0.5, maximum_width/2)`. Consequently, width settings are practical scale guides, not calibrated diameter estimates.
+2. **Normalization and Sato enhancement.** Valid intensities are rescaled using the 1st and 99.5th percentiles, then Sato highlights bright elongated structures over the selected scales. The response is normalized again. If the two percentiles coincide, the available intensity range is used so that a fiber in a sparsely occupied field can still contribute. A constant region has zero contrast. The Gaussian scales are sampled between `max(0.5, minimum_width/2)` and `max(0.5, maximum_width/2)`. Consequently, width settings are practical scale guides, not calibrated diameter estimates.
 3. **Segmentation and mask cleanup.** Thresholding selects candidate foreground, or an external binary mask supplies it. Disk closing can connect small gaps, and connected components below minimum area are removed. These operations can alter topology before tracing; inspect their biological plausibility.
 4. **Distance map and nucleation.** Distance to the mask background identifies interior ridges. Local distance maxima provide seeds, with deterministic selection and fallback for components without a selected seed. A skeleton is not used to seed or extend the FIRE-inspired paths.
 5. **Directional extension and joining.** Paths grow in both directions from seeds, seeking local distance maxima on surrounding square perimeters. Candidate connections must remain inside foreground. Local direction and deflection restrict continuation; compatible path ends can be joined. This is the FIRE-inspired nucleation/extension part, with independent Python implementation choices.
@@ -131,7 +133,7 @@ The measurement panel restores a bordered table with **Measurement / Mean–valu
 
 ![Representative IdentifyFibers output](assets/representative.png)
 
-Representative output selected for the first public release. This user-provided CellProfiler screenshot shows 57 objects, expected widths of 1–8 px, Otsu thresholding, minimum path length of 15 px and maximum deflection of 35°. These are the plugin defaults settings, but not a validated biological fiber count. The underlying image and complete pipeline for this example are not included; the screenshot is not a reproducible benchmark. 
+Representative output selected for the first public release. This user-provided CellProfiler screenshot shows 79 objects, expected widths of 1–4 px, Otsu thresholding, minimum path length of 15 px and maximum deflection of 35°. These are example settings, not the plugin defaults or a validated biological fiber count. The underlying image and complete pipeline for this example are not included; the screenshot is not a reproducible benchmark. Separate regression evidence is documented in [VALIDATION.md](../VALIDATION.md).
 
 ## Measurements and export
 
@@ -142,7 +144,7 @@ Representative output selected for the first public release. This user-provided 
 | `Fiber_Length` | Major-axis length of the final region. **Legacy naming:** not curved path length. `FiberSummary_TotalLength`, `MeanLength`, `MedianLength` and `StdLength` retain this major-axis definition. |
 | `Fiber_EndToEndLength` | Straight distance between path endpoints. |
 | `Fiber_Straightness` / `Fiber_Tortuosity` | End-to-end/path length and its reciprocal. Undefined ratios are exported as NaN where applicable. |
-| `Fiber_WidthMean`, `WidthMedian`, `WidthMaximum` | Twice the distance to mask background along the path, before region partition. Junctions or merged bundles can inflate width; dividing region pixels does not correct this width estimate. |
+| `Fiber_WidthMean`, `WidthMedian`, `WidthMaximum` | Twice the distance to mask background along the path, before region partition. At the image edge, the first pixel outside the field is treated as background. Width there describes the visible portion. Junctions or merged bundles can inflate width; dividing region pixels does not correct this width estimate. |
 | `Fiber_Orientation` | Principal direction of path coordinates, axial 0–180°. Horizontal is 0°, vertical 90°; image y increases downward. Curved fibers receive one global direction. |
 | `Fiber_IntensityMean`, `IntensityMaximum`, `IntensityIntegrated` | Original input signal over assigned region pixels; integrated intensity is their sum. In a projected crossing, the biological signal from different fibers cannot be uniquely separated from this image alone. |
 | `Fiber_CenterX`, `CenterY` | Final region centroid, not the midpoint of the traced path. |
@@ -172,7 +174,7 @@ The previous partial-overlap check used a fixed 1.5 px centerline distance. It c
 
 A sustained side switch is treated as evidence of a crossing rather than a duplicate. Without usable intensity contrast, wider matching is disabled. No new controls are needed; existing pipeline settings remain compatible. The segmentation mask is not eroded, and no exclusion gap is inserted. The correction operates on path identity before the usual length filter and pixel partition. It does not establish how many biological fibers lie inside an unresolved or saturated bundle.
 
-A lower object count alone is not evidence of improvement: the revision can also preserve a crossing that an earlier rule incorrectly trimmed.
+See the [controlled tests and before/after microscopy comparison](../VALIDATION.md). A lower object count alone is not evidence of improvement: the revision can also preserve a crossing that an earlier rule incorrectly trimmed.
 
 ## Reproducibility and references
 
@@ -183,4 +185,4 @@ Record image pixel size, preprocessing, input image name, parent regions, plugin
 1. **Stein AM, Vader DA, Jawerth LM, Weitz DA, Sander LM.** An algorithm for extracting the network geometry of three-dimensional collagen gels. *Journal of Microscopy*. 2008;232(3):463–475. [doi:10.1111/j.1365-2818.2008.02141.x](https://doi.org/10.1111/j.1365-2818.2008.02141.x). Original FIRE reference; supports the methodological inspiration, not validation of this plugin.
 2. **Sato Y, Nakajima S, Shiraga N, Atsumi H, Yoshida S, Koller T, Gerig G, Kikinis R.** Three-dimensional multi-scale line filter for segmentation and visualization of curvilinear structures in medical images. *Medical Image Analysis*. 1998;2(2):143–168. [doi:10.1016/S1361-8415(98)80009-1](https://doi.org/10.1016/S1361-8415(98)80009-1).
 
-Original FIRE copyright and license are retained in [LICENSE_FIRE.txt](../LICENSE_FIRE.txt); see [NOTICE.txt](../NOTICE.txt). The software is not endorsed by the original FIRE authors.
+Original FIRE copyright and license are retained in [LICENSE_FIRE.txt](../LICENSE_FIRE.txt); see [NOTICE.txt](../NOTICE.txt). The software is not endorsed by the original FIRE authors. Known validation limits and test instructions are in [VALIDATION.md](../VALIDATION.md).

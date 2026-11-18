@@ -1,6 +1,6 @@
 # Manual de uso do IdentifyFibers
 
-**Sato + FIRE-inspired · Versão 1.0.0 · Imagens 2D**
+**Sato + FIRE-inspired · Versão 1.0.1 · Imagens 2D**
 
 [English](manual.en.md) · [Página inicial](../README.pt-BR.md)
 
@@ -20,6 +20,8 @@
 Uma imagem de colágeno pode conter fibras isoladas, feixes entrelaçados e estruturas que se cruzam com intensidade semelhante. A extração de um objeto alongado, por si só, não estabelece que ele corresponda a uma única fibra biológica. O IdentifyFibers fornece linhas centrais e regiões de pixels para que essas duas representações sejam confrontadas com o sinal original.
 
 O plugin é **baseado no FIRE (Fiber Extraction)**, particularmente nos princípios de seleção de sementes no interior da rede e extensão direcional das trajetórias descritos por Stein et al. [1]. Trata-se de uma implementação Python independente para **2D**, com **realce Sato** [2] em lugar do pré-processamento por curvelets. Não é o FIRE/CT-FIRE original nem uma implementação com equivalência numérica demonstrada. Também não reconstrói uma rede tridimensional a partir de uma projeção 2D.
+
+A interface do CellProfiler oferece somente Sato + FIRE-inspired. Não requer MATLAB ou executável externo de rastreamento. O código utiliza bibliotecas científicas Python disponíveis no ambiente do CellProfiler. Consulte a [instalação](../README.pt-BR.md#instalação) e os [limites da validação](../VALIDATION.md).
 
 ## Início rápido
 
@@ -71,7 +73,7 @@ Os valores ocultos permanecem ativos. Desligar **Show advanced settings** não r
 |---|---:|---|
 | Number of enhancement scales | 4 | Mais escalas amostram a faixa de espessuras com maior detalhe e exigem mais tempo; menos escalas tornam essa amostragem mais grosseira. Mais escalas não garantem melhor separação. Com 1, somente a escala mínima é utilizada. |
 | Closing radius | 1 px | Um fechamento maior pode preencher pequenas falhas, mas também unir fibras vizinhas. Diminuir preserva separações; 0 desativa o fechamento. |
-| Minimum segmented area | 10 px² | Aumentar remove componentes pequenos e isolados da máscara; diminuir os preserva. Atua antes do rastreamento e não exclui individualmente fibras curtas dentro de uma rede conectada. |
+| Minimum segmented area | 10 px² | Pixels vizinhos na diagonal pertencem ao mesmo componente. Aumentar remove componentes pequenos e isolados da máscara; diminuir os preserva. Atua antes do rastreamento e não exclui individualmente fibras curtas dentro de uma rede conectada. |
 | Maximum crossing deflection | 35° | Aumentar permite curvas mais acentuadas e possíveis trocas de fibra nas junções; diminuir favorece continuidade reta, mas pode interromper fibras curvas. |
 | Minimum points for branch direction | 5 | Aumentar suaviza a estimativa direcional, mas pode perder curvas fechadas; diminuir acompanha irregularidades locais e ruído. A janela efetiva também depende da largura local. |
 | Direction guidance for object boundaries | 1 | Aumentar favorece expansão transversal às linhas centrais; diminuir dá maior influência relativa à distância e à intensidade de entrada. Zero remove o termo direcional. Não altera trajetórias nem cria uma faixa de exclusão. |
@@ -103,7 +105,7 @@ flowchart TD
 ```
 
 1. **Entrada e região de análise.** Pixels não finitos ou excluídos pela máscara são desconsiderados. Em Within objects, cada objeto parental é processado independentemente. A intensidade de entrada é preservada para as medidas.
-2. **Normalização e realce Sato.** As intensidades válidas são reescaladas pelos percentis 1 e 99,5; o Sato destaca estruturas claras e alongadas nas escalas selecionadas. A resposta é normalizada novamente. As escalas gaussianas são amostradas entre `max(0.5, minimum_width/2)` e `max(0.5, maximum_width/2)`. Portanto, os controles de espessura orientam a escala do realce, sem constituir estimativas calibradas de diâmetro.
+2. **Normalização e realce Sato.** As intensidades válidas são reescaladas pelos percentis 1 e 99,5; o Sato destaca estruturas claras e alongadas nas escalas selecionadas. A resposta é normalizada novamente. Quando os dois percentis coincidem, utiliza-se a faixa de intensidades observada para preservar o sinal de fibras que ocupam uma fração pequena do campo. Uma região constante tem contraste zero. As escalas gaussianas são amostradas entre `max(0.5, minimum_width/2)` e `max(0.5, maximum_width/2)`. Portanto, os controles de espessura orientam a escala do realce, sem constituir estimativas calibradas de diâmetro.
 3. **Segmentação e tratamento da máscara.** A limiarização seleciona o primeiro plano candidato, ou uma máscara binária externa o fornece. O fechamento com disco pode conectar pequenas lacunas, e componentes abaixo da área mínima são removidos. Essas operações podem alterar a topologia antes do rastreamento; sua plausibilidade biológica deve ser inspecionada.
 4. **Mapa de distância e nucleação.** A distância ao fundo da máscara evidencia regiões internas. Máximos locais fornecem sementes, com seleção determinística e uma alternativa para componentes sem semente selecionada. Um skeleton não é utilizado para iniciar ou estender as trajetórias FIRE-inspired.
 5. **Extensão direcional e união.** As trajetórias crescem em duas direções a partir das sementes, buscando máximos locais de distância em perímetros quadrados ao redor da posição atual. As conexões candidatas devem permanecer no primeiro plano. Direção local e deflexão restringem a continuidade; extremidades compatíveis podem ser unidas. Essa é a parte de nucleação/extensão inspirada no FIRE, com escolhas próprias da implementação Python.
@@ -133,7 +135,7 @@ O painel de medidas utiliza uma tabela com bordas e colunas **Measurement / Mean
 
 ![Resultado representativo do IdentifyFibers](assets/representative.png)
 
-Resultado representativo selecionado para a primeira versão pública. A captura do CellProfiler fornecida pelo usuário mostra 57 objetos, larguras esperadas de 1–8 px, limiarização por Otsu, comprimento mínimo de 15 px e deflexão máxima de 35°. São ajustes padrões do plugin, mas não refletem uma contagem biológica validada. A imagem de origem e o pipeline completo desse exemplo não acompanham o pacote; a captura não constitui um benchmark reproduzível. 
+Resultado representativo selecionado para a primeira versão pública. A captura do CellProfiler fornecida pelo usuário mostra 79 objetos, larguras esperadas de 1–4 px, limiarização por Otsu, comprimento mínimo de 15 px e deflexão máxima de 35°. São ajustes do exemplo, não os padrões do plugin nem uma contagem biológica validada. A imagem de origem e o pipeline completo desse exemplo não acompanham o pacote; a captura não constitui um benchmark reproduzível. As evidências de regressão estão documentadas separadamente em [VALIDATION.md](../VALIDATION.md).
 
 ## Medidas e exportação
 
@@ -144,7 +146,7 @@ Resultado representativo selecionado para a primeira versão pública. A captura
 | `Fiber_Length` | Comprimento do eixo maior da região final. **Nome legado:** não é o comprimento percorrido por uma fibra curva. `FiberSummary_TotalLength`, `MeanLength`, `MedianLength` e `StdLength` mantêm essa definição de eixo maior. |
 | `Fiber_EndToEndLength` | Distância reta entre as extremidades da trajetória. |
 | `Fiber_Straightness` / `Fiber_Tortuosity` | Razão distância entre extremidades/comprimento do caminho e sua recíproca. Razões indefinidas são exportadas como NaN quando aplicável. |
-| `Fiber_WidthMean`, `WidthMedian`, `WidthMaximum` | Duas vezes a distância ao fundo da máscara ao longo da trajetória, antes da divisão das regiões. Junções ou feixes unidos podem aumentar a estimativa; dividir os pixels dos objetos não corrige essa largura. |
+| `Fiber_WidthMean`, `WidthMedian`, `WidthMaximum` | Duas vezes a distância ao fundo da máscara ao longo da trajetória, antes da divisão das regiões. Na borda da imagem, o primeiro pixel fora do campo é tratado como fundo. A largura nessa posição descreve a porção visível. Junções ou feixes unidos podem aumentar a estimativa; dividir os pixels dos objetos não corrige essa largura. |
 | `Fiber_Orientation` | Direção principal das coordenadas da trajetória, axial entre 0 e 180°. Horizontal corresponde a 0° e vertical a 90°; o eixo y da imagem cresce para baixo. Fibras curvas recebem uma direção global. |
 | `Fiber_IntensityMean`, `IntensityMaximum`, `IntensityIntegrated` | Sinal de entrada original nos pixels atribuídos à região; a intensidade integrada é sua soma. Em um cruzamento projetado, não é possível separar de maneira única o sinal biológico de cada fibra apenas com essa imagem. |
 | `Fiber_CenterX`, `CenterY` | Centroide da região final, não o ponto médio do caminho traçado. |
@@ -174,7 +176,7 @@ A comparação anterior de sobreposições parciais utilizava uma distância fix
 
 Uma mudança sustentada de lado é tratada como evidência de cruzamento, em vez de duplicata. Sem contraste de intensidade utilizável, a comparação ampliada é desativada. Não há novos controles; os pipelines existentes permanecem compatíveis. A máscara de segmentação não é erodida e não se insere uma faixa de exclusão. A correção atua sobre a identidade das trajetórias antes do filtro habitual de comprimento e da divisão de pixels. Ela não estabelece quantas fibras biológicas existem em um feixe não resolvido ou saturado.
 
-Uma contagem menor, isoladamente, não comprova melhora: a revisão também pode preservar um cruzamento que a regra anterior cortava indevidamente.
+Consulte os [testes controlados e a comparação antes/depois na imagem de microscopia](../VALIDATION.md). Uma contagem menor, isoladamente, não comprova melhora: a revisão também pode preservar um cruzamento que a regra anterior cortava indevidamente.
 
 ## Reprodutibilidade e referências
 
@@ -185,4 +187,4 @@ Registre tamanho do pixel, pré-processamento, nome da imagem de entrada, regiõ
 1. **Stein AM, Vader DA, Jawerth LM, Weitz DA, Sander LM.** An algorithm for extracting the network geometry of three-dimensional collagen gels. *Journal of Microscopy*. 2008;232(3):463–475. [doi:10.1111/j.1365-2818.2008.02141.x](https://doi.org/10.1111/j.1365-2818.2008.02141.x). Referência original do FIRE; fundamenta a inspiração metodológica, não a validação deste plugin.
 2. **Sato Y, Nakajima S, Shiraga N, Atsumi H, Yoshida S, Koller T, Gerig G, Kikinis R.** Three-dimensional multi-scale line filter for segmentation and visualization of curvilinear structures in medical images. *Medical Image Analysis*. 1998;2(2):143–168. [doi:10.1016/S1361-8415(98)80009-1](https://doi.org/10.1016/S1361-8415(98)80009-1).
 
-Copyright e licença originais do FIRE estão preservados em [LICENSE_FIRE.txt](../LICENSE_FIRE.txt); consulte [NOTICE.txt](../NOTICE.txt). O software não é endossado pelos autores originais do FIRE.
+Copyright e licença originais do FIRE estão preservados em [LICENSE_FIRE.txt](../LICENSE_FIRE.txt); consulte [NOTICE.txt](../NOTICE.txt). O software não é endossado pelos autores originais do FIRE. Os limites conhecidos da validação e as instruções de teste estão em [VALIDATION.md](../VALIDATION.md).
