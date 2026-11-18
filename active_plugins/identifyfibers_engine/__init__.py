@@ -3,5 +3,5 @@
 from .core import Fiber, FiberAnalysisResult, FiberSettings, analyze_fibers
 
 __all__ = ["Fiber", "FiberAnalysisResult", "FiberSettings", "analyze_fibers"]
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 

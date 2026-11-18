@@ -170,8 +170,11 @@ def _normalize(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
     if values.size == 0:
         return np.zeros(image.shape, dtype=np.float32)
     low, high = np.percentile(values, (1.0, 99.5))
-    if not np.isfinite(low) or not np.isfinite(high) or high <= low:
-        return np.zeros(image.shape, dtype=np.float32)
+    if high <= low:
+        # A rare fiber can occupy less than the upper percentile's tail.
+        low, high = values.min(), values.max()
+        if high <= low:
+            return np.zeros(image.shape, dtype=np.float32)
     result = exposure.rescale_intensity(image, in_range=(low, high), out_range=(0.0, 1.0))
     result = np.asarray(result, dtype=np.float32)
     result[~mask] = 0
@@ -216,17 +219,16 @@ def _segment(enhanced: np.ndarray, region: np.ndarray, settings: FiberSettings) 
         threshold = settings.threshold_value
     threshold = float(np.clip(threshold * settings.threshold_correction, settings.threshold_lower, settings.threshold_upper))
     binary = region & (enhanced >= threshold) & (enhanced > 0)
+    return _clean_mask(binary, region, settings)
+
+
+def _clean_mask(binary, region, settings):
+    """Apply closing and the tracing network's eight-connected area criterion."""
     if settings.closing_radius > 0:
-        binary = morphology.closing(binary, morphology.disk(settings.closing_radius))
-    # Remove small components without relying on a scikit-image argument whose
-    # name and boundary semantics changed after the version in CellProfiler.
-    binary &= region
-    component_labels, _ = ndi.label(binary)
-    component_sizes = np.bincount(component_labels.ravel())
-    remove = component_sizes < settings.minimum_area
-    remove[0] = False
-    binary = binary & ~remove[component_labels]
-    return np.asarray(binary, dtype=bool)
+        binary = morphology.closing(binary, morphology.disk(settings.closing_radius)) & region
+    components, _ = ndi.label(binary, structure=np.ones((3, 3), dtype=bool))
+    sizes = np.bincount(components.ravel())
+    return binary & (sizes[components] >= settings.minimum_area)
 
 
 def _neighbors(point: tuple[int, int], pixels: set[tuple[int, int]]) -> list[tuple[int, int]]:
@@ -594,9 +596,11 @@ def analyze_fibers(
     image = np.asarray(image)
     if image.ndim != 2:
         raise ValueError("IdentifyFibers currently supports two-dimensional grayscale images")
-    valid = np.isfinite(image) if mask is None else (np.asarray(mask, dtype=bool) & np.isfinite(image))
-    if valid.shape != image.shape:
+    if mask is not None and np.shape(mask) != image.shape:
         raise ValueError("mask and image must have the same shape")
+    valid = np.isfinite(image)
+    if mask is not None:
+        valid &= np.asarray(mask, dtype=bool)
     if segmentation_mask is not None:
         segmentation_mask = np.asarray(segmentation_mask, dtype=bool)
         if segmentation_mask.shape != image.shape:
@@ -628,15 +632,10 @@ def analyze_fibers(
         if segmentation_mask is None:
             binary = _segment(enhanced, region, settings)
         else:
-            binary = segmentation_mask & region
-            if settings.closing_radius:
-                binary = morphology.closing(binary, morphology.disk(settings.closing_radius)) & region
-            components, _ = ndi.label(binary)
-            sizes = np.bincount(components.ravel())
-            binary &= (components > 0) & (sizes[components] >= settings.minimum_area)
+            binary = _clean_mask(segmentation_mask & region, region, settings)
         skeleton = (np.zeros_like(binary) if settings.tracing_method == "fire2d"
                     else morphology.skeletonize(binary) & region)
-        distance = ndi.distance_transform_edt(binary)
+        distance = ndi.distance_transform_edt(np.pad(binary, 1))[1:-1, 1:-1]
         combined_enhanced = np.maximum(combined_enhanced, enhanced)
         combined_binary |= binary
         if settings.tracing_method != "fire2d":

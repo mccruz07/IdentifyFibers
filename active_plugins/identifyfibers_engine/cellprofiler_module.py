@@ -158,7 +158,7 @@ class IdentifyFibers(Module):
  'minimum_length': 'Minimum traced path length in pixels. Increasing it removes short fibers and '
                    'fragments; decreasing it preserves short branches but may retain noise. It '
                    'does not join broken fibers.',
- 'minimum_area': 'Minimum connected mask-component area in square pixels. Increasing it removes '
+ 'minimum_area': 'Minimum mask-component area in square pixels. Diagonally touching pixels are connected. Increasing it removes '
                  'small isolated components; decreasing it retains smaller structures. It does not '
                  'filter individual fibers within a connected network.',
  'closing_radius': 'Mask closing radius in pixels. Increasing it can fill small gaps but also '

@@ -2,6 +2,20 @@
 import numpy as np
 
 
+def _windowed_power(data, region):
+    """Scale the valid contrast before computing a relative power distribution."""
+    values = data[region]
+    # Subtract a sample first so constant images have exactly zero contrast.
+    relative = values - values[0]
+    scale = np.max(np.abs(relative))
+    centered = np.zeros(data.shape, dtype=float)
+    if scale > 0:
+        relative /= scale
+        centered[region] = relative - relative.mean()
+    window = np.outer(np.hanning(data.shape[0]), np.hanning(data.shape[1]))
+    return np.abs(np.fft.fft2(centered * window)) ** 2
+
+
 def fft_orientation(image, mask=None, low_frequency=0.02, high_frequency=0.45, return_distribution=False):
     """Return dominant axial angle and power-weighted axial resultant.
 
@@ -11,9 +25,11 @@ def fft_orientation(image, mask=None, low_frequency=0.02, high_frequency=0.45, r
     image = np.asarray(image, dtype=float)
     if image.ndim != 2 or not (0 <= low_frequency < high_frequency <= 0.5):
         raise ValueError("Expected a 2D image and 0 <= low < high <= 0.5 cycles/pixel")
-    valid = np.isfinite(image) if mask is None else (np.asarray(mask, bool) & np.isfinite(image))
-    if valid.shape != image.shape:
+    if mask is not None and np.shape(mask) != image.shape:
         raise ValueError("FFT mask must match image dimensions")
+    valid = np.isfinite(image)
+    if mask is not None:
+        valid &= np.asarray(mask, dtype=bool)
     if np.count_nonzero(valid) < 16:
         return (np.nan, np.nan, None) if return_distribution else (np.nan, np.nan)
     ys, xs = np.where(valid)
@@ -21,9 +37,7 @@ def fft_orientation(image, mask=None, low_frequency=0.02, high_frequency=0.45, r
     data, region = image[box], valid[box]
     if min(data.shape) < 4:
         return (np.nan, np.nan, None) if return_distribution else (np.nan, np.nan)
-    centered = np.where(region, data - np.mean(data[region]), 0.0)
-    window = np.outer(np.hanning(data.shape[0]), np.hanning(data.shape[1]))
-    power = np.abs(np.fft.fft2(centered * window)) ** 2
+    power = _windowed_power(data, region)
     fy = np.fft.fftfreq(data.shape[0])[:, None]
     fx = np.fft.fftfreq(data.shape[1])[None, :]
     radius = np.hypot(fy, fx)
@@ -95,9 +109,7 @@ def report_image(image, mask, distribution, orientation, alignment, low, high):
         ys, xs = np.where(valid)
         sl = np.s_[ys.min():ys.max()+1, xs.min():xs.max()+1]
         crop, m = data[sl], valid[sl]
-        centered = np.where(m, crop - np.mean(crop[m]), 0)
-        win = np.outer(np.hanning(crop.shape[0]), np.hanning(crop.shape[1]))
-        power = np.fft.fftshift(np.abs(np.fft.fft2(centered * win)) ** 2)
+        power = np.fft.fftshift(_windowed_power(crop, m))
         fy = np.fft.fftshift(np.fft.fftfreq(crop.shape[0]))[:, None]
         fx = np.fft.fftshift(np.fft.fftfreq(crop.shape[1]))[None, :]
         freq = np.hypot(fy, fx)
