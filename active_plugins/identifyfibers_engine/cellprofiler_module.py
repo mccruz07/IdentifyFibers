@@ -314,22 +314,12 @@ class IdentifyFibers(Module):
                 result.label_image, image=input_image.pixel_data, alpha=0.45
             )
             paths = centerline_labels(result.fibers, input_image.pixel_data.shape)
-            colors = label_overlay(paths)
-            gray = np.clip(np.asarray(input_image.pixel_data, dtype=float), 0, 1)
-            overlay = np.repeat(gray[..., None], 3, axis=2)
-            overlay[paths > 0] = colors[paths > 0]
-            workspace.display_data.centerline_overlay = overlay
+            workspace.display_data.centerline_overlay = label_overlay(paths, image=input_image.pixel_data)
             workspace.display_data.fiber_count = len(result.fibers)
             workspace.display_data.coverage_percent = result.coverage_percent
             workspace.display_data.boundary_direction_weight = self.boundary_direction_weight.value
             workspace.display_data.resolved_shared_tails = result.resolved_shared_tails
             workspace.display_data.resolved_shared_segments = result.resolved_shared_segments
-            display_base = np.asarray(input_image.pixel_data, dtype=float)
-            display_base = np.clip(display_base, 0, 1)
-            qc = np.repeat(display_base[..., None], 3, axis=2)
-            qc[result.label_image > 0] = [0.0, 1.0, 0.0]
-            qc[result.rejected_short] = [1.0, 0.0, 1.0]
-            workspace.display_data.qc_overlay = qc
             workspace.display_data.fft_values = (distribution, angle, alignment) if self.use_fft.value else None
             workspace.display_data.dimensions = input_image.dimensions
             workspace.display_data.summary_rows = self._make_summary_rows(result.fibers)

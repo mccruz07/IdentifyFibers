@@ -36,18 +36,21 @@ def centerline_direction_tensor(fibers, shape):
     if not support.any():
         return yy, yx, xx
     # Smooth only locally around the paths, then extend their tangent estimates.
-    weight = ndi.gaussian_filter(count, 1., mode="constant")
-    tensors = [ndi.gaussian_filter(a, 1., mode="constant")/np.maximum(weight, 1e-12)
-               for a in (yy, yx, xx)]
-    nearest = ndi.distance_transform_edt(~support, return_distances=False, return_indices=True)
-    a, b, c = [t[tuple(nearest)] for t in tensors]
-    trace = a+c
-    contrast = np.sqrt((a-c)**2+4*b*b)
+    weight = np.maximum(ndi.gaussian_filter(count, 1., mode="constant")[support], 1e-12)
+    del count
+    a, b, c = [ndi.gaussian_filter(t, 1., mode="constant")[support] / weight
+               for t in (yy, yx, xx)]
+    del yy, yx, xx
+    trace = a + c
+    contrast = np.sqrt((a-c)**2 + 4*b*b)
     minor = (trace-contrast)/2
-    # PSD tensor with eigenvalues [coherence, 0]. Straight axes are strong;
-    # isotropic crossings have negligible directional preference.
-    return ((a-minor)/np.maximum(trace, 1e-12), b/np.maximum(trace, 1e-12),
-            (c-minor)/np.maximum(trace, 1e-12))
+    norm = np.maximum(trace, 1e-12)
+    nearest = ndi.distance_transform_edt(~support, return_distances=False, return_indices=True)
+    index = np.zeros(shape, dtype=np.intp)
+    index[support] = np.arange(len(weight))
+    site = index[tuple(nearest)]
+    return ((a-minor)/norm)[site], (b/norm)[site], ((c-minor)/norm)[site]
+
 
 
 def partition_regions(mask, markers, intensity, direction_tensor=None, direction_weight=1.):
@@ -75,12 +78,52 @@ def partition_regions(mask, markers, intensity, direction_tensor=None, direction
             normalized[finite] = np.clip((values[finite]-lo)/(hi-lo), 0, 1)
     costs = np.full(mask.shape, np.inf)
     seeds = np.argwhere(labels > 0)
-    queue = [(0., int(labels[y, x]), int(y), int(x)) for y, x in seeds]
     costs[labels > 0] = 0
-    heapq.heapify(queue)
     height, width = mask.shape
     steps = [(dy, dx, np.hypot(dy, dx)) for dy in (-1, 0, 1)
              for dx in (-1, 0, 1) if dy or dx]
+
+    # Centerlines seed the full length of each fiber. Most regions fill in a
+    # few transverse steps. Relax many active pixels together, using exactly
+    # the scalar cost and tie rule. Every improvement returns to the frontier.
+    y, x = seeds.T
+    for _ in range(64):
+        if len(y) < 256:
+            break
+        source_cost, owner = costs[y, x], labels[y, x]
+        changed = []
+        for dy, dx, length in steps:
+            yy, xx = y + dy, x + dx
+            use = (yy >= 0) & (yy < height) & (xx >= 0) & (xx < width)
+            k = np.flatnonzero(use)
+            k = k[mask[yy[k], xx[k]] & (markers[yy[k], xx[k]] == 0)]
+            if not len(k):
+                continue
+            sy, sx, ty, tx = y[k], x[k], yy[k], xx[k]
+            penalty = 0.
+            if direction_tensor is not None and direction_weight:
+                a, b, c = direction_tensor
+                penalty = ((a[sy,sx]+a[ty,tx])*dy*dy +
+                           2*(b[sy,sx]+b[ty,tx])*dy*dx +
+                           (c[sy,sx]+c[ty,tx])*dx*dx)/(2*length*length)
+            candidate = source_cost[k] + length * (
+                1 + 2*np.abs(normalized[sy,sx]-normalized[ty,tx]) +
+                direction_weight*np.maximum(0., penalty))
+            previous = costs[ty, tx]
+            better = (candidate < previous) | ((candidate == previous) & (owner[k] < labels[ty, tx]))
+            if better.any():
+                ty, tx = ty[better], tx[better]
+                costs[ty, tx] = candidate[better]
+                labels[ty, tx] = owner[k[better]]
+                changed.append(ty*width + tx)
+        if not changed:
+            return labels
+        y, x = np.divmod(np.unique(np.concatenate(changed)), width)
+
+    # Thin frontiers and unusually wide components finish with the original
+    # priority queue. Its initial state includes every outstanding change.
+    queue = [(costs[yy, xx], int(labels[yy, xx]), int(yy), int(xx)) for yy, xx in zip(y, x)]
+    heapq.heapify(queue)
     while queue:
         cost, owner, y, x = heapq.heappop(queue)
         if cost != costs[y, x] or owner != labels[y, x]:

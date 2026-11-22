@@ -11,6 +11,7 @@ from scipy.spatial import cKDTree
 from skimage.draw import line
 from scipy.signal import find_peaks
 from functools import lru_cache
+from .spatial import PathBoxes
 
 
 def _segment(a, b, mask):
@@ -56,17 +57,20 @@ def nucleate(mask, distance, spacing=4):
     if not mask.any():
         return np.empty((0,2),int)
     # Coordinate-only perturbation breaks flat ridges reproducibly, no global RNG.
-    y,x=np.indices(mask.shape)
+    y, x = np.ogrid[:mask.shape[0], :mask.shape[1]]
     perturbed=distance + 1e-7*((y*73856093 ^ x*19349663) % 997)/997
     maxima=mask & (perturbed == ndi.maximum_filter(perturbed, size=2*spacing+1, mode='constant'))
     seeds=list(map(tuple,np.argwhere(maxima)))
     labels,count=ndi.label(mask, structure=np.ones((3,3)))
-    present=set(labels[maxima])
-    for index in range(1,count+1):
-        if index not in present:
-            region=np.argwhere(labels==index)
-            p=region[np.argmax(distance[region[:,0],region[:,1]])]
-            seeds.append(tuple(p))
+    present = set(labels[maxima])
+    missing = [index for index in range(1, count+1) if index not in present]
+    if missing:
+        slices = ndi.find_objects(labels)
+        for index in missing:
+            box = slices[index-1]
+            region = np.argwhere(labels[box] == index)
+            point = region[np.argmax(distance[box][tuple(region.T)])]
+            seeds.append((point[0]+box[0].start, point[1]+box[1].start))
     return np.array(sorted(seeds,key=lambda p:(-distance[p],p)),int)
 
 
@@ -77,7 +81,7 @@ def _tangents(path, window=5):
     return delta / np.maximum(norm[:, None], 1e-12)
 
 
-def _deduplicate(paths, distance_map=None, mask=None):
+def _deduplicate(paths, distance_map=None, mask=None, margin=None):
     """Suppress re-traces within the local fiber width, checking orientation.
 
     A fixed pixel tolerance missed opposite sides of the same broad fiber.
@@ -87,15 +91,19 @@ def _deduplicate(paths, distance_map=None, mask=None):
     retained = []
     trees = []
     directions = []
-    boxes = []
-    margin = 1.5 if distance_map is None else 2 * float(distance_map.max())
+    if len(paths) < 2:
+        return list(paths)
+    boxes = PathBoxes()
+    if margin is None:
+        margin = 1.5 if distance_map is None else 2 * float(distance_map.max())
     for path in sorted(paths, key=lambda p: -len(p)):
         tangent = _tangents(path)
-        low, high = path.min(axis=0), path.max(axis=0)
+        number = len(retained)
+        boxes.insert(number, path)
         duplicate = False
-        for tree, other_direction, (a, b) in zip(trees, directions, boxes):
-            if np.any(high + margin < a) or np.any(b + margin < low):
-                continue
+        for other in boxes.neighbors(number, margin):
+            tree = trees[other]
+            other_direction = directions[other]
             distance, index = tree.query(path)
             same_direction = np.abs(np.sum(tangent * other_direction[index], axis=1)) >= np.cos(np.deg2rad(35))
             tolerance = 1.5
@@ -113,11 +121,11 @@ def _deduplicate(paths, distance_map=None, mask=None):
                 duplicate = True
                 break
         if duplicate:
+            boxes.remove(number)
             continue
         retained.append(path)
         trees.append(cKDTree(path))
         directions.append(tangent)
-        boxes.append((low, high))
     return retained
 
 
@@ -202,7 +210,7 @@ def _join(paths, mask, max_angle, tangent_points, distance_map=None):
     return result
 
 
-def _extend(seed, first, distance, mask, max_angle):
+def _extend(seed, first, distance, mask, max_angle, peaks_at):
     """Continue between distance ridges on a scale wider than the local fiber.
 
     The perimeter must reach beyond the fiber radius; searching inside a wide
@@ -236,7 +244,7 @@ def _extend(seed, first, distance, mask, max_angle):
         target = int(np.clip(np.ceil(2 * distance[tuple(current)]), 2, 16))
         candidates = []
         for radius in range(target, 0, -1):
-            peaks = _ring_candidates(current, radius, distance, mask,
+            peaks = peaks_at(tuple(current), radius,
                                      radius == 1 and distance[tuple(current)] < 1.5)
             for nxt in peaks:
                 unit = (nxt - current).astype(float)
@@ -262,7 +270,7 @@ def _extend(seed, first, distance, mask, max_angle):
     return np.vstack(chunks)
 
 
-def trace_network(mask, max_angle=35, tangent_points=5, seed_spacing=4):
+def trace_network(mask, max_angle=35, tangent_points=5, seed_spacing=4, raw_distance=None):
     """Euclidean distance seeds -> adaptive ridge tracing -> terminal stitching.
 
     Width-aware duplicate removal precedes and follows terminal stitching.
@@ -273,9 +281,15 @@ def trace_network(mask, max_angle=35, tangent_points=5, seed_spacing=4):
     mask = np.asarray(mask, bool)
     if mask.ndim != 2:
         raise ValueError('Expected a 2D mask')
-    d = ndi.distance_transform_edt(np.pad(mask, 1))[1:-1, 1:-1]
+    d = raw_distance if raw_distance is not None else ndi.distance_transform_edt(np.pad(mask, 1))[1:-1, 1:-1]
     distance = ndi.gaussian_filter(d, .5, mode='constant')
     seeds = nucleate(mask, distance, seed_spacing)
+    margin = 2 * float(distance.max())
+
+    @lru_cache(maxsize=8192)
+    def peaks_at(point, radius, all_foreground=False):
+        return _ring_candidates(point, radius, distance, mask, all_foreground)
+
     paths = []
     for seed in seeds:
         radius = int(np.clip(np.ceil(2 * distance[tuple(seed)]), 2, 16))
@@ -293,10 +307,10 @@ def trace_network(mask, max_angle=35, tangent_points=5, seed_spacing=4):
                 forward = [q for q in candidates if np.dot(q-seed, sign*axis) > .2]
                 if forward:
                     first_points.append(max(forward, key=lambda q: np.dot(q-seed, sign*axis)/np.linalg.norm(q-seed)))
-        arms = [_extend(seed, first, distance, mask, max_angle) for first in first_points]
+        arms = [_extend(seed, first, distance, mask, max_angle, peaks_at) for first in first_points]
         # Opposite arms from the same seed form a single full fiber. Joining
         # only after global deduplication used to discard half of a trace.
-        paths.extend(_join(_deduplicate(arms, distance, mask), mask, max_angle, tangent_points, distance))
-    paths = _deduplicate(paths, distance, mask)
+        paths.extend(_join(_deduplicate(arms, distance, mask, margin), mask, max_angle, tangent_points, distance))
+    paths = _deduplicate(paths, distance, mask, margin)
     paths = _join(paths, mask, max_angle, tangent_points, distance)
-    return _deduplicate(paths, distance, mask), distance, seeds
+    return _deduplicate(paths, distance, mask, margin), distance, seeds

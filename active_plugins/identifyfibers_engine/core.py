@@ -636,7 +636,7 @@ def analyze_fibers(
         skeleton = (np.zeros_like(binary) if settings.tracing_method == "fire2d"
                     else morphology.skeletonize(binary) & region)
         distance = ndi.distance_transform_edt(np.pad(binary, 1))[1:-1, 1:-1]
-        combined_enhanced = np.maximum(combined_enhanced, enhanced)
+        np.maximum(combined_enhanced, enhanced, out=combined_enhanced)
         combined_binary |= binary
         if settings.tracing_method != "fire2d":
             combined_skeleton |= skeleton
@@ -644,7 +644,7 @@ def analyze_fibers(
         first_fiber_index = len(fibers)
         if settings.tracing_method == "fire2d":
             from .fire2d import trace_network
-            paths, _, seeds = trace_network(binary, settings.crossing_max_angle, settings.tangent_points)
+            paths, _, seeds = trace_network(binary, settings.crossing_max_angle, settings.tangent_points, 4, distance)
         elif settings.tracing_method == "distance_guided":
             paths = _trace_distance_guided(skeleton, distance, settings)
         else:

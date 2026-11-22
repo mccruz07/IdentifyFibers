@@ -5,7 +5,7 @@ inside the directory selected in CellProfiler Preferences as the plugins
 directory.
 """
 
-from identifyfibers_engine.cellprofiler_module import IdentifyFibers
+from identifyfibers_engine.volume_module import IdentifyFibers
 
 __all__ = ["IdentifyFibers"]
 

@@ -4,7 +4,10 @@ This post-tracing stage changes centerline ownership, not the foreground mask.
 Short crossing overlaps are retained. Internal identity ties use an explicit
 geometric convention rather than allowing duplicate longitudinal ownership.
 """
+from heapq import heappop, heappush
+
 import numpy as np
+from .spatial import PathBoxes
 from scipy.spatial import cKDTree
 from scipy import ndimage as ndi
 from skimage.draw import line
@@ -85,33 +88,44 @@ def resolve_shared_tails(paths, distance, mask, minimum_length=0.):
     Returns paths and the number of resolved tail conflicts.
     """
     paths = [np.asarray(p, dtype=int).copy() for p in paths]
+    boxes = PathBoxes()
+    lengths = [_arc(p)[-1] for p in paths]
+    versions = [0] * len(paths)
+    queue = []
+
+    def consider(i, j):
+        if len(paths[i]) < 12 or len(paths[j]) < 12 or lengths[j] < minimum_length:
+            return
+        for reverse in (False, True):
+            oriented = paths[i][::-1] if reverse else paths[i]
+            candidate = _tail(oriented, paths[j], distance, mask)
+            if candidate is not None:
+                cut, advantage, removed_length = candidate
+                key = tuple(oriented[0]) + tuple(oriented[-1])
+                heappush(queue, (-advantage, -removed_length, key, i, reverse, cut,
+                                 j, versions[i], versions[j]))
+
+    for i, path in enumerate(paths):
+        boxes.insert(i, path)
+        for j in boxes.neighbors(i, 2):
+            consider(i, j)
+            consider(j, i)
+
     resolved = 0
-    while True:
-        choices = []
-        boxes = [(p.min(axis=0), p.max(axis=0)) for p in paths]
-        lengths = [_arc(p)[-1] for p in paths]
-        for i, p in enumerate(paths):
-            if len(p) < 12:
-                continue
-            for j, q in enumerate(paths):
-                if i == j or len(q) < 12 or lengths[j] < minimum_length:
-                    continue
-                if np.any(boxes[i][1]+2 < boxes[j][0]) or np.any(boxes[j][1]+2 < boxes[i][0]):
-                    continue
-                for reverse in (False, True):
-                    oriented = p[::-1] if reverse else p
-                    candidate = _tail(oriented, q, distance, mask)
-                    if candidate is not None:
-                        cut, advantage, removed_length = candidate
-                        # Coordinate-based tie-breaking avoids object-ID priority.
-                        key = tuple(oriented[0])+tuple(oriented[-1])
-                        choices.append((-advantage, -removed_length, key, i, reverse, cut))
-        if not choices:
-            break
-        _, _, _, i, reverse, cut = min(choices)
-        p = paths[i][::-1] if reverse else paths[i]
-        shortened = p[:cut+1]
+    while queue:
+        _, _, _, i, reverse, cut, j, vi, vj = heappop(queue)
+        if vi != versions[i] or vj != versions[j]:
+            continue
+        oriented = paths[i][::-1] if reverse else paths[i]
+        shortened = oriented[:cut+1]
         paths[i] = shortened[::-1] if reverse else shortened
+        lengths[i] = _arc(paths[i])[-1]
+        versions[i] += 1
+        boxes.remove(i)
+        boxes.insert(i, paths[i])
+        for j in boxes.neighbors(i, 2):
+            consider(i, j)
+            consider(j, i)
         resolved += 1
     return paths, resolved
 
@@ -256,44 +270,58 @@ def resolve_shared_segments(paths, distance, mask, minimum_length=0., image=None
     margin = 4. if signal is not None else 2.
     paths = sorted((_canonical(p).copy() for p in paths if len(p) >= 2),
                    key=lambda p: tuple(p.ravel()))
+    # Monotone IDs retain list order when a losing path is replaced by its
+    # exclusive arms. Unchanged pairs keep their original priority in the heap.
+    initial = paths
+    paths = {}
+    lengths = {}
+    boxes = PathBoxes()
+    queue = []
+
+    def consider(i, j):
+        p, q = paths[i], paths[j]
+        if min(len(p), len(q)) < 6 or max(lengths[i], lengths[j]) < minimum_length:
+            return
+        for a, b, c, d, shared, radius in _shared_runs(p, q, distance, mask, signal):
+            span = max(8, int(np.ceil(4*radius)))
+            turns = []
+            for path, lo, hi in ((p, a, b), (q, c, d)):
+                values = [_turn(path, k, span) for k in (lo, hi)]
+                values = [v for v in values if v is not None]
+                turns.append(float(np.mean(values)) if values else 0.)
+            if lengths[i] < minimum_length:
+                winner = j
+            elif lengths[j] < minimum_length:
+                winner = i
+            elif abs(turns[0]-turns[1]) >= 5.:
+                winner = i if turns[0] < turns[1] else j
+            else:
+                winner = min((i, j), key=lambda k: (-lengths[k], tuple(paths[k].ravel())))
+            loser, lo, hi = (j, c, d) if winner == i else (i, a, b)
+            key = tuple(paths[winner].ravel()), tuple(paths[loser].ravel())
+            heappush(queue, (-shared, key, loser, lo, hi, winner))
+
+    def insert(index, path):
+        paths[index] = path
+        lengths[index] = _arc(path)[-1]
+        boxes.insert(index, path)
+        for other in boxes.neighbors(index, margin):
+            consider(other, index)
+
+    for i, path in enumerate(initial):
+        insert(i, path)
+    next_index = len(initial)
     resolved = 0
-    while True:
-        choices = []
-        boxes = [(p.min(axis=0), p.max(axis=0)) for p in paths]
-        lengths = [_arc(p)[-1] for p in paths]
-        for i, p in enumerate(paths):
-            if len(p) < 6:
-                continue
-            for j in range(i+1, len(paths)):
-                q = paths[j]
-                if len(q) < 6 or max(lengths[i], lengths[j]) < minimum_length:
-                    continue
-                if np.any(boxes[i][1]+margin < boxes[j][0]) or np.any(boxes[j][1]+margin < boxes[i][0]):
-                    continue
-                for a, b, c, d, shared, radius in _shared_runs(p, q, distance, mask, signal):
-                    span = max(8, int(np.ceil(4*radius)))
-                    turns = []
-                    for path, lo, hi in ((p, a, b), (q, c, d)):
-                        values = [_turn(path, k, span) for k in (lo, hi)]
-                        values = [v for v in values if v is not None]
-                        turns.append(float(np.mean(values)) if values else 0.)
-                    if lengths[i] < minimum_length:
-                        winner = j
-                    elif lengths[j] < minimum_length:
-                        winner = i
-                    elif abs(turns[0]-turns[1]) >= 5.:
-                        winner = i if turns[0] < turns[1] else j
-                    else:
-                        winner = min((i, j), key=lambda k: (-lengths[k], tuple(paths[k].ravel())))
-                    loser, lo, hi = (j, c, d) if winner == i else (i, a, b)
-                    key = tuple(paths[winner].ravel()), tuple(paths[loser].ravel())
-                    choices.append((-shared, key, loser, lo, hi))
-        if not choices:
-            break
-        _, _, loser, lo, hi = min(choices)
+    while queue:
+        _, _, loser, lo, hi, winner = heappop(queue)
+        if loser not in paths or winner not in paths:
+            continue
         p = paths.pop(loser)
-        # Keep junction points as endpoints, never reconnect the two exclusive
-        # arms through the just-removed common arc.
-        paths.extend(_canonical(arm).copy() for arm in (p[:lo+1], p[hi:]) if len(arm) >= 2)
+        boxes.remove(loser)
+        del lengths[loser]
+        for arm in (p[:lo+1], p[hi:]):
+            if len(arm) >= 2:
+                insert(next_index, _canonical(arm).copy())
+                next_index += 1
         resolved += 1
-    return paths, resolved
+    return list(paths.values()), resolved
