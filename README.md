@@ -1,12 +1,8 @@
-# IdentifyFibers RC2 · 2D / 3D
+# IdentifyFibers · 2D / 3D
 
-Private test candidate for CellProfiler 4.2.8. The module supports **2D image** and **3D volume (test candidate)**. Pipelines from v1.0.1 load in 2D mode. The volumetric method uses Sato enhancement, centerline graphs and FIRE-inspired continuation.
+The module supports **2D image** and **3D volume **. 
 
-[Manual em português](README.pt-BR.md) · [Five audits](AUDIT.md) · [2D manual](docs/manual.en.md)
-
-## Testing the 2D update
-
-Choose **2D image**, open the same pipeline and use the same acquisition and settings for both candidates. Time IdentifyFibers with the display window closed. Compare the fiber labels, centerlines and exported measurements. The included benchmark reproduces the comparison on microscopy data. [Timing and validation](PERFORMANCE.md)
+[Manual em português](README.pt-BR.md) · [2D manual](docs/manual.en.md)
 
 ## Run the supplied test
 
@@ -49,6 +45,6 @@ All fiber features listed here carry the `Fiber3D_` prefix.
 | `TouchesImageEdge`, `FallbackTrace` | Flags for contact with a volume boundary and use of the alternate geodesic trace. |
 | `Location_Center_X/Y/Z` (standard CellProfiler names) | Region centroid in voxel indices. |
 
-Start with a crop containing an isolated fiber, a dense bundle and a projected crossing. Inspect the raw signal through Z. An unresolved bundle may have several possible biological interpretations. Fine axial details require adequate optical resolution and Z sampling. The FFT is a feature of the 2D workflow. The 3D controls reported here are synthetic; validation on biological stacks remains open.
+Start with a crop containing an isolated fiber, a dense bundle and a projected crossing. Inspect the raw signal through Z. An unresolved bundle may have several possible biological interpretations. Fine axial details require adequate optical resolution and Z sampling. The FFT is a feature of the 2D workflow.
 
 **Methodological reference.** Stein AM, Vader DA, Jawerth LM, Weitz DA, Sander LM (2008). An algorithm for extracting the network geometry of three-dimensional collagen gels. *Journal of Microscopy* 232, 463–475. [DOI](https://doi.org/10.1111/j.1365-2818.2008.02141.x). This Python implementation combines FIRE-inspired continuation with Sato enhancement and graph-based extraction. [Attribution](NOTICE.txt).
